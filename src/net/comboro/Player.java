@@ -35,7 +35,7 @@ public class Player {
         this.username = username;
         this.client = client;
         this.team = team;
-        Team.getById(team).addPlayer(this);
+        //TODO Team.getById(team).addPlayer(this);
 
         if (client != null)
             client.addListener(new Client.ClientListener.ClientAdapter() {
@@ -158,10 +158,6 @@ public class Player {
 
     public int getTeamId() {
         return team;
-    }
-
-    public Team getTeam() {
-        return Team.getById(team);
     }
 
     public String getUsername() {

@@ -5,6 +5,8 @@ import net.comboro.belotbasics.CardUtils;
 import net.comboro.belotbasics.Colour;
 import net.comboro.belotbasics.Type;
 import net.comboro.networking.internet.tcp.ClientTCP;
+import net.comboro.team.Team;
+import net.comboro.team.Teams;
 
 import java.io.Serializable;
 import java.util.*;
@@ -48,6 +50,14 @@ public class Game {
 
     private boolean started = false, winner = false;
     private Team winnerTeam = null;
+
+    private Teams teams;
+
+    private Player playerToMove;
+
+    public Game() {
+        teams = new Teams();
+    }
 
     public void addPlayer(String username, ClientTCP client) {
         if (started) return;
@@ -115,7 +125,7 @@ public class Game {
                 }
 
                 // No possible annotation
-                if (player.getTeam().isTrickHolder() && gameMode == GAME_MODE_ALL_TRUMP) {
+                if (teams.getTeam(player).isTrickHolder() && gameMode == GAME_MODE_ALL_TRUMP) {
                     consecutivePasses++;
                     continue;
                 }
@@ -131,7 +141,7 @@ public class Game {
                         // Reset multiplier
                         multiplier = MULTIPLIER_SINGLE;
                         // Set team
-                        player.getTeam().setTrickHolder(true);
+                        teams.getTeam(player).setTrickHolder(true);
                     } else {
                         consecutivePasses = 0;
                     }
@@ -143,7 +153,7 @@ public class Game {
                             multiplier = MULTIPLIER_REDOUBLE;
                         }
                         // Set team
-                        player.getTeam().setTrickHolder(true);
+                        teams.getTeam(player).setTrickHolder(true);
                     }
                 }
             }
@@ -172,6 +182,45 @@ public class Game {
         }
     }
 
+    private void manageTrick() {
+        List<Card> playedCards = new ArrayList<>();
+        Card lastPlayedCard = playerToMove.waitForCard();
+        playedCards.add(lastPlayedCard);
+        NetworkUtils.sendLastPlayedCard(playerList, playerToMove, lastPlayedCard);
+
+        int arrPos = orderedPlayerList.indexOf(playerToMove);
+        for (int i = 0; i < 3; i++) {
+            // Get player and card
+            playerToMove = orderedPlayerList.get((arrPos + i) % orderedPlayerList.size());
+            lastPlayedCard = playerToMove.waitForCard(playedCards, gameMode);
+
+            //TODO: Check for belot
+
+            // Send to all and and to array
+            playedCards.add(lastPlayedCard);
+            NetworkUtils.sendLastPlayedCard(playerList, playerToMove, lastPlayedCard);
+        }
+
+        // TODO: PRODULJI
+
+        // Find trick holder
+        List<Card> playedCardsCopy = new ArrayList<>(playedCards);
+        CardUtils.sort(playedCardsCopy);
+        Card strongest = playedCardsCopy.get(playedCardsCopy.size() - 1);
+        int index = playedCards.indexOf(strongest);
+        playerToMove = orderedPlayerList.get(index);
+
+        int trickPoints = playedCards.stream().mapToInt(Card::getValue).sum();
+
+        // Final 10 points
+        if (roundID == 8)
+            trickPoints += 10;
+
+        teams.getTeam(playerToMove).addToTrickPoints(trickPoints);
+
+
+    }
+
     private void startGame() {
         gameThread = new Thread(() -> {
             started = true;
@@ -197,46 +246,12 @@ public class Game {
 
                 //Tricks
 
-                Player playerToMove = orderedPlayerList.get(playerStartingFirst);
+                playerToMove = orderedPlayerList.get(playerStartingFirst);
                 for (roundID = 1; roundID < 9; roundID++) {
-                    List<Card> playedCards = new ArrayList<>();
-                    Card lastPlayedCard = playerToMove.waitForCard();
-                    playedCards.add(lastPlayedCard);
-                    NetworkUtils.sendLastPlayedCard(playerList, playerToMove, lastPlayedCard);
-
-                    int arrPos = orderedPlayerList.indexOf(playerToMove);
-                    for (int i = 0; i < 3; i++) {
-                        // Get player and card
-                        playerToMove = orderedPlayerList.get((arrPos + i) % orderedPlayerList.size());
-                        lastPlayedCard = playerToMove.waitForCard(playedCards, gameMode);
-
-                        //TODO: Check for belot
-
-                        // Send to all and and to array
-                        playedCards.add(lastPlayedCard);
-                        NetworkUtils.sendLastPlayedCard(playerList, playerToMove, lastPlayedCard);
-                    }
-
-                    // TODO: PRODULJI
-
-                    // Find trick holder
-                    List<Card> playedCardsCopy = new ArrayList<>(playedCards);
-                    CardUtils.sort(playedCardsCopy);
-                    Card strongest = playedCardsCopy.get(playedCardsCopy.size() - 1);
-                    int index = playedCards.indexOf(strongest);
-                    playerToMove = orderedPlayerList.get(index);
-
-                    int trickPoints = playedCards.stream().mapToInt(Card::getValue).sum();
-
-                    // Final 10 points
-                    if (roundID == 8)
-                        trickPoints += 10;
-
-                    playerToMove.getTeam().addToTrickPoints(trickPoints);
-
+                    manageTrick();
                 }
 
-                Team trickHolder = Team.getTrickHolder();
+                Team trickHolder = teams.getTrickHolder();
                 Team otherTeam = trickHolder.getOtherTeam();
 
                 boolean
@@ -244,7 +259,7 @@ public class Game {
                         team2valat = Team.TEAM_2.getTrickPoints() == 0;
 
                 // Add 9 for valat
-                Team.forEach(team ->
+                teams.forEach(team ->
                         team.addToOverallPoints(
                                 team.getOtherTeam().getTrickPoints() == 0 ? 9 : 0
                         )
@@ -255,7 +270,7 @@ public class Game {
                     otherTeam.addToTrickPoints(otherTeam.getTrickPoints());
                 }
 
-                int gamePoints = 0;
+                int gamePoints;
                 if (gameMode > 0 && gameMode < 3) gamePoints = TOTAL_POINTS_COLOUR_GAME;
                 else if (gameMode == 4) gamePoints = TOTAL_POINTS_NO_TRUMP;
                 else gamePoints = TOTAL_POINTS_ALL_TRUMP;

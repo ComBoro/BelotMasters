@@ -8,6 +8,8 @@ import java.util.Map;
 
 public class BelotServer extends ServerTCP {
 
+    private Game game;
+
     private ServerListener.ServerAdapter<ClientTCP> adapter = new ServerListener.ServerAdapter<>() {
         @Override
         public void onClientDisconnect(ClientTCP client) {
@@ -27,7 +29,7 @@ public class BelotServer extends ServerTCP {
 
                     for (Map.Entry<String, String> entry : Application.expectedPlayers.entrySet()) {
                         if (entry.getKey().equals(username) && entry.getValue().equals(password)) {
-                            //TODO Game.addPlayer(username, client);
+                            game.addPlayer(username, client);
                         } else {
                             client.send("Wrong credentials.");
                             removeClient(client);
@@ -41,6 +43,8 @@ public class BelotServer extends ServerTCP {
     public BelotServer(int port) {
         super(port);
         addLister(adapter);
+
+        game = new Game();
     }
 
 }

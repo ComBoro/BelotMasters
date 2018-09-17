@@ -1,9 +1,10 @@
-package net.comboro;
+package net.comboro.team;
+
+import net.comboro.Declaration;
+import net.comboro.Player;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
-import java.util.function.Consumer;
 
 public class Team {
 
@@ -11,24 +12,12 @@ public class Team {
     private final int TEAM_ID;
     private List<Player> players = new ArrayList<>();
     private int overallPoints, trickPoints;
-    private boolean trickHolder = false;
+    boolean trickHolder = false;
 
-    private Team(int id) {
+    Team(int id) {
         TEAM_ID = id;
         trickPoints = 0;
         overallPoints = 0;
-    }
-
-    public static void forEach(Consumer<Team> action) {
-        Arrays.asList(TEAM_1, TEAM_2).forEach(action);
-    }
-
-    public static Team getTrickHolder() {
-        return TEAM_1.trickHolder ? TEAM_1 : TEAM_2;
-    }
-
-    public static Team getById(int id) {
-        return id == 1 ? TEAM_1 : TEAM_2;
     }
 
     public void addPlayer(Player player) {
