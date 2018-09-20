@@ -7,7 +7,8 @@ import java.util.function.Consumer;
 
 public class Teams {
 
-    private Team TEAM_1 = new Team(1), TEAM_2 = new Team(2);
+    public Team TEAM_1 = new Team(1), TEAM_2 = new Team(2);
+    public final Team[] teams = new Team[]{TEAM_1, TEAM_2};
 
     public void forEach(Consumer<Team> action) {
         Arrays.asList(TEAM_1, TEAM_2).forEach(action);
@@ -17,12 +18,16 @@ public class Teams {
         return TEAM_1.trickHolder ? TEAM_1 : TEAM_2;
     }
 
-    public Team getById(int id) {
+    private Team getById(int id) {
         return id == 1 ? TEAM_1 : TEAM_2;
     }
 
     public Team getTeam(Player player) {
         return getById(player.getTeamId());
+    }
+
+    public Team getOtherTeam(Team team) {
+        return (team == TEAM_1) ? TEAM_1 : TEAM_2;
     }
 
 }

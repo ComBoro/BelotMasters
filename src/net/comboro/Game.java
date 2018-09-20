@@ -17,7 +17,7 @@ public class Game {
 
     public static final int WAIT_TIME_PLAYER = 25;
 
-    public static final int
+    private static final int
             GAME_MODE_NOTHING = -1,
             GAME_MODE_CLUBS = 0,
             GAME_MODE_DIAMONDS = 1,
@@ -26,12 +26,12 @@ public class Game {
             GAME_MODE_NO_TRUMP = 4,
             GAME_MODE_ALL_TRUMP = 5;
 
-    public static final int
+    private static final int
             TOTAL_POINTS_COLOUR_GAME = 162,
             TOTAL_POINTS_NO_TRUMP = 260,
             TOTAL_POINTS_ALL_TRUMP = 258;
 
-    public static final int
+    private static final int
             MULTIPLIER_SINGLE = 1,
             MULTIPLIER_DOUBLE = 2,
             MULTIPLIER_REDOUBLE = 4;
@@ -55,7 +55,7 @@ public class Game {
 
     private Player playerToMove;
 
-    public Game() {
+    Game() {
         teams = new Teams();
     }
 
@@ -81,6 +81,8 @@ public class Game {
             System.out.println("playerList size: " + playerList.size());
             System.out.println("orderedPlayerList size: " + orderedPlayerList.size());
             System.out.println("temp : " + temp);
+
+            playerStartingFirst = new Random().nextInt() % 4;
 
             startGame();
         }
@@ -182,6 +184,23 @@ public class Game {
         }
     }
 
+    private Player getTrickHolder(List<Card> playedCards) {
+        List<Card> playedCardsCopy = new ArrayList<>(playedCards);
+        CardUtils.sort(playedCardsCopy);
+        Card strongest = playedCardsCopy.get(playedCardsCopy.size() - 1);
+        int index = playedCards.indexOf(strongest) % 4;
+        return orderedPlayerList.get(index);
+    }
+
+    private int getTrickPoints(List<Card> playedCards, int roundID) {
+        int trickPoints = playedCards.stream().mapToInt(Card::getValue).sum();
+
+        // Final 10 points
+        if (roundID == 8)
+            trickPoints += 10;
+        return trickPoints;
+    }
+
     private void manageTrick() {
         List<Card> playedCards = new ArrayList<>();
         Card lastPlayedCard = playerToMove.waitForCard();
@@ -200,25 +219,113 @@ public class Game {
             playedCards.add(lastPlayedCard);
             NetworkUtils.sendLastPlayedCard(playerList, playerToMove, lastPlayedCard);
         }
+        playerToMove = getTrickHolder(playedCards);
 
-        // TODO: PRODULJI
-
-        // Find trick holder
-        List<Card> playedCardsCopy = new ArrayList<>(playedCards);
-        CardUtils.sort(playedCardsCopy);
-        Card strongest = playedCardsCopy.get(playedCardsCopy.size() - 1);
-        int index = playedCards.indexOf(strongest);
-        playerToMove = orderedPlayerList.get(index);
-
-        int trickPoints = playedCards.stream().mapToInt(Card::getValue).sum();
-
-        // Final 10 points
-        if (roundID == 8)
-            trickPoints += 10;
+        int trickPoints = getTrickPoints(playedCards, roundID);
 
         teams.getTeam(playerToMove).addToTrickPoints(trickPoints);
+    }
+
+    private void doubleIfNoTrumps() {
+        teams.forEach(team -> team.addToTrickPoints(team.getTrickPoints()));
+    }
+
+    private int getGamePoints(int gameMode) {
+        if (gameMode > 0 && gameMode < 3) return TOTAL_POINTS_COLOUR_GAME;
+        else if (gameMode == 4) return TOTAL_POINTS_NO_TRUMP;
+        else return TOTAL_POINTS_ALL_TRUMP;
+    }
+
+    private int addDeclarationPoints() {
+        if (gameMode != GAME_MODE_NO_TRUMP) {
+            Team t1 = teams.TEAM_1, t2 = teams.TEAM_2;
+
+            List<Declaration>
+                    declarationsT1 = t1.getTeamDeclarations(),
+                    declarationsT2 = t2.getTeamDeclarations();
+
+            Declaration.filterStrongest(declarationsT1, declarationsT2);
+
+            int
+                    pointsT1 = declarationsT1.stream().mapToInt(Declaration::getPoints).sum(),
+                    pointsT2 = declarationsT2.stream().mapToInt(Declaration::getPoints).sum();
+
+            t1.addToTrickPoints(pointsT1);
+            t2.addToTrickPoints(pointsT2);
+
+            return pointsT1 + pointsT2;
+        }
+        return 0;
+    }
+
+    private void managePoints() {
+        Team trickHolder = teams.getTrickHolder();
+        Team otherTeam = teams.getOtherTeam(teams.getOtherTeam(trickHolder));
+
+        addValatPoints();
+
+        doubleIfNoTrumps();
+
+        int gamePoints = getGamePoints(gameMode);
 
 
+        int declarationPoints = addDeclarationPoints();
+
+        gamePoints += declarationPoints;
+        int overallPoints = (gamePoints + 2) / 10;
+
+        if (otherTeam.getTrickPoints() > trickHolder.getTrickPoints()) {
+            // Inside
+            otherTeam.addToOverallPoints((gamePoints + 2) / 10);
+
+            otherTeam.addToOverallPoints(hangingPoints);
+            hangingPoints = 0;
+        } else {
+            int otherPoints = otherTeam.getTrickPoints(), otherFinalPoints = otherPoints / 10;
+            if (gameMode < GAME_MODE_ALL_TRUMP) {
+                otherFinalPoints += otherPoints % 10 > 5 ? 1 : 0;
+            } else {
+                otherFinalPoints += otherPoints % 10 > 3 ? 1 : 0;
+            }
+
+            int overallFinalPoints = overallPoints / 2;
+            overallFinalPoints += overallPoints % 2;
+
+            // Hanging points
+            if (otherFinalPoints == overallFinalPoints) {
+                otherTeam.addToOverallPoints(overallFinalPoints);
+                hangingPoints += overallFinalPoints;
+            } else { // Nothing is hanging
+                trickHolder.addToOverallPoints(overallFinalPoints - otherFinalPoints);
+                otherTeam.addToOverallPoints(otherPoints);
+
+                trickHolder.addToOverallPoints(hangingPoints);
+                hangingPoints = 0;
+            }
+
+        }
+    }
+
+    private void manageWinners() {
+        for (Team team : teams.teams)
+            findWinner(team);
+    }
+
+    private void findWinner(Team team) {
+        Team other = teams.getOtherTeam(team);
+        boolean otherValat = other.getTrickPoints() == 0;
+        if (team.getOverallPoints() > 150 && team.getOverallPoints() > other.getOverallPoints() && !otherValat) {
+            winner = true;
+            winnerTeam = teams.TEAM_1;
+        }
+    }
+
+    private void addValatPoints() {
+        teams.forEach(team ->
+                team.addToOverallPoints(
+                        teams.getOtherTeam(team).getTrickPoints() == 0 ? 9 : 0
+                )
+        );
     }
 
     private void startGame() {
@@ -230,8 +337,7 @@ public class Game {
             //Rounds(Раздавания)
             while (!winner) {
                 sendAll(ROUND_START);
-                List<Card> deck = getRandomDeck();
-                ListIterator<Card> deckIterator = deck.listIterator();
+                ListIterator<Card> deckIterator = randomDeckListIterator();
                 firstDeal(deckIterator);
 
                 manageBidding();
@@ -251,92 +357,8 @@ public class Game {
                     manageTrick();
                 }
 
-                Team trickHolder = teams.getTrickHolder();
-                Team otherTeam = trickHolder.getOtherTeam();
-
-                boolean
-                        team1valat = Team.TEAM_1.getTrickPoints() == 0,
-                        team2valat = Team.TEAM_2.getTrickPoints() == 0;
-
-                // Add 9 for valat
-                teams.forEach(team ->
-                        team.addToOverallPoints(
-                                team.getOtherTeam().getTrickPoints() == 0 ? 9 : 0
-                        )
-                );
-
-                if (gameMode == GAME_MODE_NO_TRUMP) {
-                    trickHolder.addToTrickPoints(trickHolder.getTrickPoints());
-                    otherTeam.addToTrickPoints(otherTeam.getTrickPoints());
-                }
-
-                int gamePoints;
-                if (gameMode > 0 && gameMode < 3) gamePoints = TOTAL_POINTS_COLOUR_GAME;
-                else if (gameMode == 4) gamePoints = TOTAL_POINTS_NO_TRUMP;
-                else gamePoints = TOTAL_POINTS_ALL_TRUMP;
-
-                int gamePointsFinal = (gamePoints + 2) / 10;
-
-                if (gameMode != GAME_MODE_NO_TRUMP) {
-                    List<Declaration>
-                            declarationsTeamHolder = trickHolder.getTeamDeclarations(),
-                            declarationsOtherTeam = otherTeam.getTeamDeclarations();
-
-                    Declaration.filterStrongest(declarationsTeamHolder, declarationsOtherTeam);
-
-                    int
-                            pointsTH = declarationsTeamHolder.stream().mapToInt(Declaration::getPoints).sum(),
-                            pointsOT = declarationsOtherTeam.stream().mapToInt(Declaration::getPoints).sum();
-
-                    gamePointsFinal += pointsTH / 10;
-                    gamePointsFinal += pointsOT / 10;
-
-                    trickHolder.addToTrickPoints(pointsTH);
-                    otherTeam.addToTrickPoints(pointsOT);
-                }
-
-                if (otherTeam.getTrickPoints() > trickHolder.getTrickPoints()) {
-                    // Inside
-                    otherTeam.addToOverallPoints(gamePointsFinal);
-
-                    otherTeam.addToOverallPoints(hangingPoints);
-                    hangingPoints = 0;
-                } else {
-                    int otherPoints = otherTeam.getTrickPoints(), otherFinalPoints = otherPoints / 10;
-                    if (gameMode < GAME_MODE_ALL_TRUMP) {
-                        otherFinalPoints += otherPoints % 10 > 5 ? 1 : 0;
-                    } else {
-                        otherFinalPoints += otherPoints % 10 > 3 ? 1 : 0;
-                    }
-
-
-                    int halfFinalPoints = gamePointsFinal / 2;
-                    halfFinalPoints += gamePointsFinal % 2;
-
-                    // Hanging points
-                    if (otherFinalPoints == halfFinalPoints) {
-                        otherTeam.addToOverallPoints(halfFinalPoints);
-                        hangingPoints += halfFinalPoints;
-                    } else { // Nothing is hanging
-                        trickHolder.addToOverallPoints(gamePointsFinal - otherFinalPoints);
-                        otherTeam.addToOverallPoints(otherPoints);
-
-                        trickHolder.addToOverallPoints(hangingPoints);
-                        hangingPoints = 0;
-                    }
-
-                }
-
-                if (Team.TEAM_1.getOverallPoints() > 150 && Team.TEAM_1.getOverallPoints() > Team.TEAM_2.getOverallPoints() && !team2valat) {
-                    winner = true;
-                    winnerTeam = Team.TEAM_1;
-                }
-
-                if (Team.TEAM_2.getOverallPoints() > 150 && Team.TEAM_2.getOverallPoints() > Team.TEAM_1.getOverallPoints() && !team1valat) {
-                    winner = true;
-                    winnerTeam = Team.TEAM_2;
-                }
-
+                managePoints();
+                manageWinners();
             }
 
             //TODO: Dispay winner
@@ -350,6 +372,10 @@ public class Game {
 
     private <M extends Serializable> void sendOthers(M message, Player sender) {
         for (Player player : playerList) if (!playerList.equals(sender)) player.send(message);
+    }
+
+    private ListIterator<Card> randomDeckListIterator() {
+        return getRandomDeck().listIterator();
     }
 
     private List<Card> getRandomDeck() {
@@ -392,6 +418,14 @@ public class Game {
         );
         Collections.shuffle(deck);
         return deck;
+    }
+
+    public boolean hasWinner() {
+        return winnerTeam != null;
+    }
+
+    public Team getWinnerTeam() {
+        return winnerTeam;
     }
 
 }

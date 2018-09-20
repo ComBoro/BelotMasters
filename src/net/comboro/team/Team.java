@@ -8,7 +8,6 @@ import java.util.List;
 
 public class Team {
 
-    public static Team TEAM_1 = new Team(1), TEAM_2 = new Team(2);
     private final int TEAM_ID;
     private List<Player> players = new ArrayList<>();
     private int overallPoints, trickPoints;
@@ -62,10 +61,6 @@ public class Team {
 
     public List<Player> getPlayers() {
         return new ArrayList<>(players);
-    }
-
-    public Team getOtherTeam() {
-        return TEAM_ID == 1 ? TEAM_1 : TEAM_2;
     }
 
     public List<Declaration> getTeamDeclarations() {
