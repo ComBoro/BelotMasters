@@ -1,5 +1,8 @@
 package net.comboro.belotbasics;
 
+import java.util.Collections;
+import java.util.List;
+
 public final class Card {
 
     public final Colour COLOUR;
@@ -17,6 +20,12 @@ public final class Card {
                 Colour.fromString(string.substring(length - 1)),
                 Type.fromString(string.substring(0, length - 1))
         );
+    }
+
+    public static List<Card> fromString(String... cards) {
+        List<Card> cardsList = Collections.EMPTY_LIST;
+        for (String card : cards) cardsList.add(Card.fromString(card));
+        return cardsList;
     }
 
     public Card setTrump() {

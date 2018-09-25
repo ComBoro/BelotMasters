@@ -17,7 +17,7 @@ public class Game {
 
     public static final int WAIT_TIME_PLAYER = 25;
 
-    private static final int
+    public static final int
             GAME_MODE_NOTHING = -1,
             GAME_MODE_CLUBS = 0,
             GAME_MODE_DIAMONDS = 1,
@@ -92,9 +92,9 @@ public class Game {
         for (Player player : playerList) {
             List<Player> copy = new ArrayList<>(playerList);
             copy.remove(player);
-            NetworkUtils.sendTeam(player);
+            NetworkUtils.sendTeam(player, teams);
             for (Player other : copy) {
-                NetworkUtils.sendTeamOther(player, other);
+                NetworkUtils.sendTeamOther(player, other, teams);
             }
         }
     }

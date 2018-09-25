@@ -22,6 +22,11 @@ public class Declaration implements Comparable {
 
         this.cards = cards;
 
+        initialize();
+
+    }
+
+    private void initialize() {
         highest = cards.get(0).TYPE;
         boolean isSquare = true;
         for (Card card : cards) {
@@ -64,7 +69,6 @@ public class Declaration implements Comparable {
                 }
             }
         }
-
     }
 
     public static void filterStrongest(List<Declaration> dec1, List<Declaration> dec2) {
