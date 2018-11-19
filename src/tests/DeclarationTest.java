@@ -1,8 +1,8 @@
 package tests;
 
-import net.comboro.Declaration;
-import net.comboro.belotbasics.Card;
-import net.comboro.belotbasics.Type;
+import net.comboro.belotserver.Declaration;
+import net.comboro.belotserver.belotbasics.Card;
+import net.comboro.belotserver.belotbasics.Type;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -19,41 +19,52 @@ class DeclarationTest {
     Declaration declarationSqaure3 = new Declaration(Card.fromString("AS", "AH", "AC", "AD"));
 
     @org.junit.jupiter.api.Test
-    void filterStrongest() {
-    }
-
-    @org.junit.jupiter.api.Test
     void getHighest() {
-        assertEquals(Type.Ten, declarationSqaure1.getHighest());
-        assertEquals(Type.Queen, declarationSqaure1.getHighest());
-        assertEquals(Type.Ace, declarationSqaure1.getHighest());
-        assertEquals(Type.Jack, declarationSqaure1.getHighest());
-        assertEquals(Type.Queen, declarationSqaure1.getHighest());
+        assertEquals(Type.Ten, declarationConseq1.getHighest());
+        assertEquals(Type.Queen, declarationConseq2.getHighest());
+        assertEquals(Type.Ace, declarationConseq3.getHighest());
+        assertEquals(Type.Jack, declarationConseq4.getHighest());
+        assertEquals(Type.Queen, declarationConseq5.getHighest());
     }
 
     @org.junit.jupiter.api.Test
     void getType() {
+        assertEquals(Declaration.TYPE_CONSECUTIVE, declarationConseq1.getType());
+        assertEquals(Declaration.TYPE_CONSECUTIVE, declarationConseq2.getType());
+        assertEquals(Declaration.TYPE_CONSECUTIVE, declarationConseq3.getType());
+        assertEquals(Declaration.TYPE_CONSECUTIVE, declarationConseq4.getType());
+        assertEquals(Declaration.TYPE_CONSECUTIVE, declarationConseq5.getType());
+
+        assertEquals(Declaration.TYPE_SQUARE, declarationSqaure1.getType());
+        assertEquals(Declaration.TYPE_SQUARE, declarationSqaure2.getType());
+        assertEquals(Declaration.TYPE_SQUARE, declarationSqaure3.getType());
     }
 
     @org.junit.jupiter.api.Test
     void getPoints() {
+        assertEquals(20, declarationConseq1.getPoints());
+        assertEquals(20, declarationConseq1.getPoints());
+        assertEquals(20, declarationConseq3.getPoints());
+        assertEquals(50, declarationConseq4.getPoints());
+        assertEquals(100, declarationConseq5.getPoints());
+
+        assertEquals(200, declarationSqaure1.getPoints());
+        assertEquals(150, declarationSqaure2.getPoints());
+        assertEquals(100, declarationSqaure3.getPoints());
     }
 
-    @org.junit.jupiter.api.Test
-    void nullify() {
-    }
 
     @org.junit.jupiter.api.Test
-    void isFromConsequetive() {
-        assertTrue(declarationConseq1.isFromConsequetive());
-        assertTrue(declarationConseq2.isFromConsequetive());
-        assertTrue(declarationConseq3.isFromConsequetive());
-        assertTrue(declarationConseq4.isFromConsequetive());
-        assertTrue(declarationConseq5.isFromConsequetive());
+    void isFromConsecutive() {
+        assertTrue(declarationConseq1.isFromConsecutive());
+        assertTrue(declarationConseq2.isFromConsecutive());
+        assertTrue(declarationConseq3.isFromConsecutive());
+        assertTrue(declarationConseq4.isFromConsecutive());
+        assertTrue(declarationConseq5.isFromConsecutive());
 
-        assertFalse(declarationSqaure1.isSquare());
-        assertFalse(declarationSqaure2.isSquare());
-        assertFalse(declarationSqaure3.isSquare());
+        assertFalse(declarationSqaure1.isFromConsecutive());
+        assertFalse(declarationSqaure2.isFromConsecutive());
+        assertFalse(declarationSqaure3.isFromConsecutive());
     }
 
     @org.junit.jupiter.api.Test
