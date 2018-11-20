@@ -9,9 +9,7 @@ import net.comboro.belotserver.networking.client.ClientListener;
 
 import java.io.Serializable;
 import java.util.ArrayList;
-import java.util.LinkedList;
 import java.util.List;
-import java.util.ListIterator;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
@@ -19,31 +17,36 @@ import java.util.concurrent.TimeUnit;
 
 public class Player {
 
-    private static ScheduledExecutorService wait = Executors.newSingleThreadScheduledExecutor();
-    private static ScheduledFuture<?> future = null;
-    private static Object lock = new Object();
-
-    private Token token;
+    private final Object lock;
+    protected Token token;
     private String username;
-    private BelotClient client;
-    private List<Card> cards = new LinkedList<>();
-    private int team;
-
+    protected BelotClient client;
+    protected List<Card> cards = new ArrayList<>();
     private String input;
-    private List<Declaration> declarations = new ArrayList<>();
-    private List<String> usedInDeclarations = new ArrayList<>();
+    private List<Declaration> declarations;
+    private List<String> usedInDeclarations;
+    private ScheduledExecutorService wait;
+    private ScheduledFuture<?> future;
 
-    public Player(Token token, BelotClient client, int team) {
+    public Player(Token token, BelotClient client) {
         this.token = token;
         this.username = token.getUsername();
         this.client = client;
-        this.team = team;
 
-        if (client != null)
+        this.wait = Executors.newSingleThreadScheduledExecutor();
+        this.future = null;
+        this.lock = new Object();
+
+        this.declarations = new ArrayList<>();
+        this.usedInDeclarations = new ArrayList<>();
+
+        if (client != null) {
             client.addListener(new ClientListener.ClientAdapter() {
                 @Override
                 public void onReceive(SerializableMessage<?> message) {
                     input = (String) message.getData();
+
+                    System.out.println("RECEIVE " + input);
 
                     synchronized (lock) {
                         lock.notify();
@@ -70,7 +73,7 @@ public class Player {
                     }
                 }
             });
-
+        } else System.err.println("NULL CLIENT");
     }
 
     public <M extends Serializable> void send(M message) {
@@ -81,15 +84,15 @@ public class Player {
         input = defaultReply;
 
         client.send(toSend);
-        future = wait.schedule(() ->
-                        lock.notify()
-                , Game.WAIT_TIME_PLAYER, TimeUnit.SECONDS);
+        future = wait.schedule(lock::notify, Game.WAIT_TIME_PLAYER, TimeUnit.SECONDS);
+
+        System.out.println("WAITING");
 
         synchronized (lock) {
             try {
                 lock.wait();
             } catch (InterruptedException e) {
-
+                e.printStackTrace();
             }
         }
 
@@ -108,45 +111,17 @@ public class Player {
             throw new RuntimeException('\"' + username + "\" didn't play a card.");
         }
 
-        return Card.fromString(reply.substring(NetworkStringConstants.PREFIX_PLAY_CARD.length()));
+        Card card = Card.fromString(reply.substring(NetworkStringConstants.PREFIX_PLAY_CARD.length()));
 
-//        if (reply.startsWith("card:")) {
-//            reply = reply.substring(5);
-//            try {
-//                Card card = Card.fromString(reply);
-//                // Check if card is valid
-//                if (playedCards != null && !playedCards.isEmpty()) {
-//                    if (!cards.contains(card))
-//                        throw new RuntimeException('\"' + username + "\" tried to play a card not present in his hand.");
-//                    boolean valid = CardUtils.validMove(playedCards, gameMode, this, card);
-//                    if (!valid)
-//                        throw new RuntimeException('\"' + username + "\" tried to play a card in a way that doesn't obey the rules.");
-//                }
-//                cards.remove(card);
-//                return card;
-//            } catch (IllegalArgumentException iae) {
-//                throw new RuntimeException('\"' + username + "\" tried to play an invalid card: " + iae.getMessage());
-//            }
-//        } else throw new RuntimeException('\"' + username + "\" send an invalid command: " + reply);
+        //cards.remove(card);
 
-
+        return card;
     }
 
     public void addCard(Card card) {
         cards.add(card);
         //Notify client
         send("card:add:" + card);
-    }
-
-    public void removeCard(Card toRemove) {
-        ListIterator<Card> cardListIterator = cards.listIterator();
-        while (cardListIterator.hasNext()) {
-            Card card = cardListIterator.next();
-            if (card.TYPE.equals(toRemove.TYPE) && card.COLOUR.equals(toRemove.COLOUR)) {
-                cardListIterator.remove();
-                send("card:remove:" + card);
-            }
-        }
     }
 
     public List<Declaration> getDeclarations() {
@@ -157,11 +132,7 @@ public class Player {
     }
 
     public List<Card> getCards() {
-        return new LinkedList<>(cards);
-    }
-
-    public int getTeamId() {
-        return team;
+        return new ArrayList<>(cards);
     }
 
     public String getUsername() {
@@ -174,8 +145,6 @@ public class Player {
 
     @Override
     public boolean equals(Object obj) {
-        if (obj instanceof Player) {
-            return this.client.equals(((Player) obj).client);
-        } else return false;
+        return obj instanceof Player && this.client.equals(((Player) obj).client);
     }
 }

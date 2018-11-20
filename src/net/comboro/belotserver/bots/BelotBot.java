@@ -1,5 +1,6 @@
 package net.comboro.belotserver.bots;
 
+import net.comboro.belotserver.Player;
 import net.comboro.belotserver.belotbasics.Card;
 import net.comboro.belotserver.networking.SerializableMessage;
 import net.comboro.belotserver.networking.Token;
@@ -13,25 +14,23 @@ import java.util.List;
 
 import static net.comboro.belotserver.networking.NetworkStringConstants.*;
 
-public class BelotBot extends BelotClient implements ClientListener {
+public class BelotBot extends Player implements ClientListener {
 
-    private final Token token;
-    private final String name;
-    private final String prefix;
+    private String prefix;
 
-    private List<Card> cards = new ArrayList<>();
     private List<Card> playedCards = new ArrayList<>();
     private int gameMode = -1;
 
     public BelotBot(Socket socket, int botId) throws IOException {
-        super(socket);
-        this.token = new Token("usr" + botId, "pwd" + botId);
+        super(
+                new Token("usr" + botId, "pwd" + botId),
+                new BelotClient(socket));
 
-        this.name = "Bot " + botId;
-        this.setThreadName(name);
+        String name = "Bot " + botId;
+        this.client.setThreadName(name);
         this.prefix = name + "| ";
 
-        addListener(this);
+        this.client.addListener(this);
 
         send("token:" + token);
     }
@@ -39,7 +38,7 @@ public class BelotBot extends BelotClient implements ClientListener {
     @Override
     public void onReceive(SerializableMessage<?> message) {
         String msg = (String) message.getData();
-        System.out.println(prefix + msg);
+//        System.out.println(prefix + msg);
         //Adding cards
         if (msg.startsWith(PREFIX_ADD_CARD)) {
             cards.add(Card.fromString(msg.substring(PREFIX_ADD_CARD.length())));
@@ -71,7 +70,11 @@ public class BelotBot extends BelotClient implements ClientListener {
         // Play card
         if (msg.startsWith(PREFIX_TIME_FOR_CARD)) {
             Card card = BelotAI.playCard(playedCards, cards, gameMode);
-            cards.remove(card);
+            System.out.println(cards);
+            boolean removed = cards.remove(card);
+            System.out.println("Removed " + card + " : " + removed);
+            System.out.println(cards);
+
             // Send card
             send(PREFIX_PLAY_CARD + card.toString());
         }
@@ -92,12 +95,12 @@ public class BelotBot extends BelotClient implements ClientListener {
 
     @Override
     public void onConnect() {
-        System.out.println(prefix + "onConnect");
+//        System.out.println(prefix + "onConnect");
     }
 
     @Override
     public void onDisconnect() {
-        System.out.println(prefix + "onDisconnect");
+//        System.out.println(prefix + "onDisconnect");
     }
 
     @Override

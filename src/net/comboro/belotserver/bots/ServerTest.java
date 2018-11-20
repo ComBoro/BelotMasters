@@ -1,6 +1,5 @@
 package net.comboro.belotserver.bots;
 
-import net.comboro.belotserver.networking.client.BelotClient;
 import net.comboro.belotserver.networking.server.BelotServer;
 import net.comboro.belotserver.networking.server.ServerListener;
 
@@ -22,7 +21,7 @@ public class ServerTest {
         });
         belotServer.startServer();
 
-        List<BelotClient> bots = new ArrayList<>();
+        List<BelotBot> bots = new ArrayList<>();
         for (int i = 0; i < 4; i++) {
             try {
                 Socket clientSocket = new Socket(InetAddress.getByName("localhost"), 47047);

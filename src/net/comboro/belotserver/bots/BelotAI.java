@@ -38,6 +38,7 @@ public class BelotAI {
     }
 
     public static Card playCard(List<Card> laidCards, List<Card> playerCards, int gameMode) {
+        System.out.println("pc " + playerCards);
         if (gameMode == -1) throw new IllegalArgumentException("Illegal game mode.");
         if (laidCards.size() > 3) throw new IllegalArgumentException("Way too many laid cards: " + laidCards);
         if (playerCards.isEmpty() || playerCards.size() > 8)
@@ -60,7 +61,7 @@ public class BelotAI {
         }
 
         int randCard = new Random().nextInt(validMoves.size());
-        playerCards.remove(randCard);
+        //playerCards.remove(randCard);
         return validMoves.get(randCard);
     }
 

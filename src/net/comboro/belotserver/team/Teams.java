@@ -54,7 +54,7 @@ public class Teams {
     }
 
     public Team getTeam(Player player) {
-        return getById(player.getTeamId());
+        return TEAM_1.getPlayers().contains(player) ? TEAM_1 : TEAM_2;
     }
 
     public Team getOtherTeam(Team team) {

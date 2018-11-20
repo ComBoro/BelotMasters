@@ -86,7 +86,7 @@ public class Game {
             teams.addPlayer(player,2);
         } */
         int team = (temp_team++ % 2) + 1;
-        Player player = new Player(token, client, team);
+        Player player = new Player(token, client);
         teams.addPlayer(player, team);
 
         if (teams.getPlayerList().size() == 4) {
@@ -148,7 +148,7 @@ public class Game {
                         teams.getTeam(player).setTrickHolder(true);
                     } else {
                         consecutivePasses++;
-                        System.out.println("consecutivePasses:" + consecutivePasses);
+//                        System.out.println("consecutivePasses:" + consecutivePasses);
                     }
                 } else if (annot.startsWith(PREFIX_MULTIPLIER)) {
                     if (gameMode != GAME_MODE_NOTHING) {
@@ -209,18 +209,19 @@ public class Game {
 
         sendAll(TRICK_START);
 
-        // Start - Play first card
-        Card lastPlayedCard = playerToMove.waitForCard();
-        playedCards.add(lastPlayedCard);
-        NetworkUtils.sendLastPlayedCard(teams.getPlayerList(), playerToMove, lastPlayedCard);
-        // End
-
         int arrPos = teams.indexOf(playerToMove);
 
-        for (int i = 1; i <= 3; i++) {
+        for (int i = 0; i < 4; i++) {
             // Get player and card
             playerToMove = teams.getPlayerAt((arrPos + i) % teams.getPlayerList().size());
-            lastPlayedCard = playerToMove.waitForCard();
+
+            System.out.println("Player to move: " + playerToMove.getUsername());
+            System.out.println("Cards in hand: " + playerToMove.getCards().toString());
+            System.out.println("Played cards: " + playedCards.toString());
+
+            Card lastPlayedCard = playerToMove.waitForCard();
+            System.out.println("Played card: " + lastPlayedCard.toString());
+            System.out.println();
 
             //TODO: Check for belot
 
@@ -342,6 +343,7 @@ public class Game {
             started = true;
 
             System.out.println("Game started");
+            System.out.println();
 
             NetworkUtils.sendTeammates(teams);
 
@@ -350,17 +352,32 @@ public class Game {
                 sendAll(ROUND_START);
 
                 ListIterator<Card> deckIterator = CardUtils.randomDeckListIterator();
+                System.out.println("First Deal");
                 firstDeal(deckIterator);
 
+                // Print cards after deal
+                teams.getPlayerList().forEach(p -> System.out.println(p.getUsername() + " | " + p.getCards().toString()));
+                System.out.println();
+
+                System.out.println("Bidding");
                 manageBidding();
+                System.out.println("END Bidding");
+                System.out.println();
 
                 if (gameMode == GAME_MODE_NOTHING) {
                     continue;
                 }
 
+                System.out.println("Game mode : " + gameMode);
+                System.out.println();
+
                 sendAll(NetworkStringConstants.ROUND_GAMEMODE + gameMode);
 
+                System.out.println("Second Deal");
                 secondDeal(deckIterator);
+                // Print cards after deal
+                teams.getPlayerList().forEach(p -> System.out.println(p.getUsername() + "| " + p.getCards().toString()));
+                System.out.println();
 
                 setTrumps();
 

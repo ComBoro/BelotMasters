@@ -39,12 +39,13 @@ public class BelotServer {
                 if (message.getData() instanceof String) {
                     String str = (String) message.getData();
 
-                    System.out.println(str);
+                    //System.out.println(str);
 
                     //Login
                     if (str.startsWith("token:") || str.startsWith("login:")) {
                         str = str.substring(6);
 
+                        //noinspection finally
                         try {
                             Token token = new Token(str);
                             game.addPlayer(token, client);
@@ -52,8 +53,6 @@ public class BelotServer {
                             System.err.println(e.getMessage());
                             client.send(e.getMessage());
                             removeClient(client);
-                        } finally {
-                            return;
                         }
                     }
                 }
@@ -62,14 +61,11 @@ public class BelotServer {
     }
 
     private void acceptClients() {
-        while (!serverSocket.isClosed()) {
-            try {
-                Socket socket = serverSocket.accept();
-                BelotClient belotClient = new BelotClient(socket);
-                addClient(belotClient);
-            } catch (Exception e) {
-                continue;
-            }
+        while (!serverSocket.isClosed()) try {
+            Socket socket = serverSocket.accept();
+            BelotClient belotClient = new BelotClient(socket);
+            addClient(belotClient);
+        } catch (Exception e) {
         }
     }
 
@@ -135,7 +131,7 @@ public class BelotServer {
     public void startServer() {
         serverExecutor.execute(() -> {
             try {
-                serverListeners.forEach(e -> e.onServerStart());
+                serverListeners.forEach(ServerListener::onServerStart);
                 serverSocket = new ServerSocket(port);
                 acceptClients();
             } catch (Exception e) {
@@ -145,9 +141,9 @@ public class BelotServer {
     }
 
     public void stopServer() {
-        serverExecutor.execute(() -> stop());
+        serverExecutor.execute(this::stop);
         serverExecutor.shutdown();
-        serverListeners.forEach(e -> e.onServerStop());
+        serverListeners.forEach(ServerListener::onServerStop);
         serverListeners.clear();
         serverExecutor.shutdownNow();
     }
