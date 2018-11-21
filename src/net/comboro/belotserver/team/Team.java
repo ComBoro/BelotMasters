@@ -21,6 +21,7 @@ public class Team {
 
     public void addPlayer(Player player) {
         players.add(player);
+
     }
 
     public void addToOverallPoints(int points) {
