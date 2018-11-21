@@ -1,3 +1,4 @@
+/*
 package net.comboro.belotserver.belotbasics;
 
 import org.junit.jupiter.api.Test;
@@ -31,3 +32,4 @@ class CardUtilsTest {
         assertFalse(CardUtils.validMove(playedCards, gameMode, playerCards, Card.fromString("10H")));
     }
 }
+*/

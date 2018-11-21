@@ -27,6 +27,7 @@ public class Declaration implements Comparable {
     }
 
     public static void filterStrongest(List<Declaration> dec1, List<Declaration> dec2) {
+        if (dec1.isEmpty() || dec2.isEmpty()) return;
         // Consecutive
         List<Declaration>
                 consDec1 = dec1.stream().filter(Declaration::isFromConsecutive).collect(Collectors.toList()),

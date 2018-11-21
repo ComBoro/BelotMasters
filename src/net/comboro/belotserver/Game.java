@@ -352,6 +352,9 @@ public class Game {
                 sendAll(ROUND_START);
 
                 ListIterator<Card> deckIterator = CardUtils.randomDeckListIterator();
+
+                teams.getPlayerList().forEach(p -> p.cards.clear());
+
                 System.out.println("First Deal");
                 firstDeal(deckIterator);
 

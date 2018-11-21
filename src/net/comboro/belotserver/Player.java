@@ -10,10 +10,6 @@ import net.comboro.belotserver.networking.client.ClientListener;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.TimeUnit;
 
 public class Player {
 
@@ -21,20 +17,18 @@ public class Player {
     protected Token token;
     private String username;
     protected BelotClient client;
-    protected List<Card> cards = new ArrayList<>();
+    protected List<Card> cards;
     private String input;
     private List<Declaration> declarations;
     private List<String> usedInDeclarations;
-    private ScheduledExecutorService wait;
-    private ScheduledFuture<?> future;
 
     public Player(Token token, BelotClient client) {
         this.token = token;
         this.username = token.getUsername();
         this.client = client;
 
-        this.wait = Executors.newSingleThreadScheduledExecutor();
-        this.future = null;
+        this.cards = new ArrayList<>();
+
         this.lock = new Object();
 
         this.declarations = new ArrayList<>();
@@ -46,12 +40,11 @@ public class Player {
                 public void onReceive(SerializableMessage<?> message) {
                     input = (String) message.getData();
 
-                    System.out.println("RECEIVE " + input);
+//                    System.out.println("RECEIVE " + input);
 
                     synchronized (lock) {
                         lock.notify();
                     }
-                    if (future != null) future.cancel(true);
 
                     if (input.startsWith("declaration:")) {
                         String decl = input.substring(12);
@@ -84,19 +77,16 @@ public class Player {
         input = defaultReply;
 
         client.send(toSend);
-        future = wait.schedule(lock::notify, Game.WAIT_TIME_PLAYER, TimeUnit.SECONDS);
 
-        System.out.println("WAITING");
+//        System.out.println("WAITING");
 
         synchronized (lock) {
             try {
-                lock.wait();
+                lock.wait(Game.WAIT_TIME_PLAYER * 1_000);
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
         }
-
-        future = null;
 
         return input;
     }
@@ -119,6 +109,7 @@ public class Player {
     }
 
     public void addCard(Card card) {
+        System.out.println(username + " | Adding " + card + " to " + cards);
         cards.add(card);
         //Notify client
         send("card:add:" + card);
@@ -132,7 +123,7 @@ public class Player {
     }
 
     public List<Card> getCards() {
-        return new ArrayList<>(cards);
+        return cards;
     }
 
     public String getUsername() {
