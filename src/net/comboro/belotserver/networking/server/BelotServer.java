@@ -73,7 +73,7 @@ public class BelotServer {
         try {
             serverSocket.close();
         } catch (IOException e) {
-
+            e.printStackTrace();
         }
     }
 
