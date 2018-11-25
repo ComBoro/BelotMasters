@@ -54,16 +54,10 @@ public class Game {
     private Team winnerTeam = null;
 
     private Teams teams;
-    private List<String> team1Names;
 
     private Player playerToMove;
 
     private int temp_team = 0;
-
-    Game(List<String> team1Names) {
-        this.team1Names = team1Names;
-        this.teams = new Teams();
-    }
 
     public Game() {
         this.teams = new Teams();
@@ -189,7 +183,7 @@ public class Game {
 
     private Player getTrickHolder(List<Card> playedCards) {
         List<Card> playedCardsCopy = new ArrayList<>(playedCards);
-        CardUtils.sort(playedCardsCopy);
+        CardUtils.sortAscending(playedCardsCopy);
         Card strongest = playedCardsCopy.get(playedCardsCopy.size() - 1);
         int index = playedCards.indexOf(strongest) % 4;
         return teams.getPlayerAt(index);
@@ -215,6 +209,7 @@ public class Game {
             // Get player and card
             playerToMove = teams.getPlayerAt((arrPos + i) % teams.getPlayerList().size());
 
+
             System.out.println("Player to move: " + playerToMove.getUsername());
             System.out.println("Cards in hand: " + playerToMove.getCards().toString());
             System.out.println("Played cards: " + playedCards.toString());
@@ -230,6 +225,8 @@ public class Game {
             NetworkUtils.sendLastPlayedCard(teams.getPlayerList(), playerToMove, lastPlayedCard);
         }
         playerToMove = getTrickHolder(playedCards);
+
+        System.out.println("Trick holder: " + playerToMove.getUsername());
 
         int trickPoints = getTrickPoints(playedCards, roundID);
 
@@ -383,7 +380,6 @@ public class Game {
                 System.out.println();
 
                 setTrumps();
-
                 //Tricks
 
                 teams.orderPlayers();

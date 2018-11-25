@@ -62,7 +62,7 @@ public class Teams {
     }
 
     public List<Player> getPlayerList() {
-        return new ArrayList<>(playerList);
+        return playerList;
     }
 
     public Player getPlayerAt(int index) {

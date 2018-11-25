@@ -2,6 +2,7 @@ package net.comboro.belotserver.bots;
 
 import net.comboro.belotserver.Player;
 import net.comboro.belotserver.belotbasics.Card;
+import net.comboro.belotserver.belotbasics.Colour;
 import net.comboro.belotserver.networking.SerializableMessage;
 import net.comboro.belotserver.networking.Token;
 import net.comboro.belotserver.networking.client.BelotClient;
@@ -16,10 +17,13 @@ import static net.comboro.belotserver.networking.NetworkStringConstants.*;
 
 public class BelotBot extends Player implements ClientListener {
 
+    public static final int TIME_PER_MOVE_MILLS = 2000;
+
     private String prefix;
 
     private List<Card> playedCards = new ArrayList<>();
     private int gameMode = -1;
+    private Colour trumpColour;
 
     public BelotBot(Socket socket, int botId) throws IOException {
         super(
@@ -58,6 +62,27 @@ public class BelotBot extends Player implements ClientListener {
             gameMode = Integer.parseInt(
                     msg.substring(ROUND_GAMEMODE.length())
             );
+
+            if (gameMode < 4) {
+                Colour trumpColour = Colour.Clubs;
+                if (gameMode == 1) {
+                    trumpColour = Colour.Diamonds;
+                } else if (gameMode == 2) {
+                    trumpColour = Colour.Hearts;
+                } else if (gameMode == 3) {
+                    trumpColour = Colour.Spades;
+                }
+
+                for (Card card : cards) {
+                    if (card.COLOUR.equals(trumpColour))
+                        card.setTrump();
+                }
+            } else if (gameMode == 5) {
+                cards.stream().forEach(Card::setTrump);
+            }
+
+
+
         }
 
         //Add played card
@@ -69,12 +94,17 @@ public class BelotBot extends Player implements ClientListener {
 
         // Play card
         if (msg.startsWith(PREFIX_TIME_FOR_CARD)) {
+            long start = System.currentTimeMillis();
             Card card = BelotAI.playCard(playedCards, cards, gameMode);
-            System.out.println(cards);
-            boolean removed = cards.remove(card);
-            System.out.println("Removed " + card + " : " + removed);
-            System.out.println(cards);
-
+            super.removeCard(card);
+            long timeTakenMills = System.currentTimeMillis() - start;
+            if (timeTakenMills < TIME_PER_MOVE_MILLS) { //All moves at least TIME_PER_MOVE_MILLS
+                try {
+                    Thread.sleep(TIME_PER_MOVE_MILLS - timeTakenMills);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
             // Send card
             send(PREFIX_PLAY_CARD + card.toString());
         }

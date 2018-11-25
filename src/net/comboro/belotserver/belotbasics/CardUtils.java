@@ -2,13 +2,14 @@ package net.comboro.belotserver.belotbasics;
 
 import net.comboro.belotserver.Game;
 import net.comboro.belotserver.Player;
+import org.jetbrains.annotations.Contract;
 
 import java.util.*;
 
 public class CardUtils {
 
-    public static final void sort(List<Card> cards) {
-        if (cards.isEmpty()) return;
+    public static final void sortAscending(List<Card> cards) {
+        if (cards.size() < 2) return;
 
         Colour requestedColour = cards.get(0).COLOUR;
 
@@ -24,6 +25,26 @@ public class CardUtils {
                 else return 0;// Neither of the cards are from the requested colour
             }
             return card1.isTrump() ? 1 : -1; // One is trump the other is not
+        });
+    }
+
+    public static final void sortDescending(List<Card> cards) {
+        if (cards.size() < 2) return;
+
+        Colour requestedColour = cards.get(0).COLOUR;
+
+        Collections.sort(cards, (card1, card2) -> {
+            if (card1.isTrump() && card2.isTrump()) return Type.COMPARATOR_TRUMP.compare(card2.TYPE, card1.TYPE);
+            if (!card1.isTrump() && !card2.isTrump()) {
+                if (card1.COLOUR.equals(requestedColour)) {
+                    if (card2.COLOUR.equals(requestedColour))
+                        return Type.COMPARATOR_NO_TRUMP.compare(card2.TYPE, card1.TYPE); //both are from requested colour
+                    else return 1; // card 1 is from requested colour, card2 is not
+                } else if (card2.COLOUR.equals(requestedColour))
+                    return -1;// card2 is from requested colour, card1 is not
+                else return 0;// Neither of the cards are from the requested colour
+            }
+            return card1.isTrump() ? -1 : 1; // One is trump the other is not
         });
     }
 
@@ -59,6 +80,7 @@ public class CardUtils {
     }
 
     public static boolean canOvertrump(List<Card> playerCards, Type strongestTrump) {
+        if (strongestTrump == null) return true;
         for (Card card : playerCards) {
             if (card.isTrump() && card.getValue() > strongestTrump.getTrump())
                 return true;
@@ -67,6 +89,7 @@ public class CardUtils {
         return false;
     }
 
+    @Contract("null, _, _, _ -> true")
     public static boolean validMove(List<Card> playedCards, int gameMode, List<Card> playerCards, Card toBePlayed) {
         if (playedCards == null || playedCards.isEmpty() || playerCards == null || playerCards.size() < 2) {
             return true;
@@ -119,7 +142,7 @@ public class CardUtils {
 
         // Game modes : 0-3
         if (hasFromAColour(playerCards, requestedColour)) {
-            if (trumpRequired) { // Overtrumping is mandatory if possible
+            if (trumpRequired) { // Overtrumping is mandatory if possible+
                 if (canOvertrump(playerCards, strongestTrump))
                     return toBePlayed.isTrump() && toBePlayed.TYPE.getTrump() > strongestTrump.getTrump();
                 return toBePlayed.isTrump();
@@ -129,11 +152,15 @@ public class CardUtils {
         } else { // Doesn't have from the requested colour
             if (hasTrump(playerCards)) {
                 if (!strongestPlayedByTeammate) {
-                    if (canOvertrump(playerCards, strongestTrump))
-                        return toBePlayed.isTrump() && toBePlayed.TYPE.getTrump() > strongestTrump.getTrump(); // If he can overtrump, he must
+                    if (canOvertrump(playerCards, strongestTrump)) {// If one can overtrump, one must
+                        if (strongestTrump != null)
+                            return toBePlayed.isTrump() && toBePlayed.TYPE.getTrump() > strongestTrump.getTrump();
+                        else return toBePlayed.isTrump();
+                    }
+
                 }
                 return true; // Teammate holds the trick, anything is valid
-            } else return true; // Nor does he have a trump, anything is valid
+            } else return true; // Nor has a trump, anything is valid
         }
     }
 

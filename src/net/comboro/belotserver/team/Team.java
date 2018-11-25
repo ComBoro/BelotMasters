@@ -21,7 +21,6 @@ public class Team {
 
     public void addPlayer(Player player) {
         players.add(player);
-
     }
 
     public void addToOverallPoints(int points) {
@@ -61,12 +60,12 @@ public class Team {
     }
 
     public List<Player> getPlayers() {
-        return new ArrayList<>(players);
+        return players;
     }
 
     public List<Declaration> getTeamDeclarations() {
-        List<Declaration> teamDecl = new ArrayList<>(players.get(0).getDeclarations());
-        teamDecl.addAll(players.get(1).getDeclarations());
-        return teamDecl;
+        List<Declaration> teamDec = new ArrayList<>(players.get(0).getDeclarations());
+        teamDec.addAll(players.get(1).getDeclarations());
+        return teamDec;
     }
 }

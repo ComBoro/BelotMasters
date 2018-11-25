@@ -29,7 +29,15 @@ public enum Colour {
     }
 
     public String toShortString() {
-        return string.substring(0, 1);
+        if (this.equals(Clubs)) {
+            return String.valueOf('\u2667');
+        } else if (this.equals(Diamonds)) {
+            return String.valueOf('\u2662');
+        } else if (this.equals(Hearts)) {
+            return String.valueOf('\u2661');
+        } else {
+            return String.valueOf('\u2664');
+        }
     }
 
 }

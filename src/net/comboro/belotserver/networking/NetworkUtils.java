@@ -28,7 +28,7 @@ public class NetworkUtils {
     public static void sendTeammates(Teams teams) {
         List<Player> playerList = teams.getPlayerList();
         for (Player player : playerList) {
-            List<Player> copy = teams.getPlayerList();
+            List<Player> copy = new ArrayList<>(teams.getPlayerList());
             copy.remove(player);
             NetworkUtils.sendTeam(player, teams);
             for (Player other : copy) {

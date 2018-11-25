@@ -49,7 +49,7 @@ public class Player {
                     if (input.startsWith("declaration:")) {
                         String decl = input.substring(12);
                         String[] cardStrings = decl.split(",");
-                        List<Card> cards = new ArrayList<>(cardStrings.length);
+                        List<Card> cardsDec = new ArrayList<>(cardStrings.length);
 
                         boolean valid = true;
 
@@ -59,7 +59,7 @@ public class Player {
                                 break;
                             }
                             usedInDeclarations.add(string);
-                            cards.add(Card.fromString(string));
+                            cardsDec.add(Card.fromString(string));
                         }
 
                         //TODO if (valid && Game.roundID < 2) declarations.add(new Declaration(cards));
@@ -103,16 +103,19 @@ public class Player {
 
         Card card = Card.fromString(reply.substring(NetworkStringConstants.PREFIX_PLAY_CARD.length()));
 
-        //cards.remove(card);
+        cards.remove(card);
 
         return card;
     }
 
     public void addCard(Card card) {
-        System.out.println(username + " | Adding " + card + " to " + cards);
         cards.add(card);
         //Notify client
         send("card:add:" + card);
+    }
+
+    protected boolean removeCard(Card card) {
+        return cards.remove(card);
     }
 
     public List<Declaration> getDeclarations() {
