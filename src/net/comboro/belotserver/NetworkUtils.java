@@ -1,6 +1,5 @@
-package net.comboro.belotserver.networking;
+package net.comboro.belotserver;
 
-import net.comboro.belotserver.Player;
 import net.comboro.belotserver.belotbasics.Card;
 import net.comboro.belotserver.team.Teams;
 
@@ -37,8 +36,16 @@ public class NetworkUtils {
         }
     }
 
+    public static void sendAnnotation(Player sender, int annotation, Teams teams) {
+        List<Player> copy = new ArrayList<>(teams.getPlayerList());
+        copy.remove(sender);
+        for (Player other : copy) {
+            other.send("annotation:player:" + sender.getUsername() + ":" + annotation);
+        }
+    }
+
     public static String sendAnnotaionRequest(Player player, List<Integer> previousAnnots) {
-        String annot = PREFIX_ANNOTATION + WAIT_TIME_PLAYER;
+        String annot = PREFIX_ANNOTATION + "time:" + WAIT_TIME_PLAYER;
 
         if (previousAnnots == null || previousAnnots.isEmpty())
             return player.waitForReply(annot, PREFIX_ANNOTATION + "-1");

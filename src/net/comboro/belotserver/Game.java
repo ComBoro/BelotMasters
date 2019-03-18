@@ -4,11 +4,10 @@ import net.comboro.belotserver.belotbasics.Card;
 import net.comboro.belotserver.belotbasics.CardUtils;
 import net.comboro.belotserver.belotbasics.Colour;
 import net.comboro.belotserver.networking.NetworkStringConstants;
-import net.comboro.belotserver.networking.NetworkUtils;
-import net.comboro.belotserver.networking.Token;
-import net.comboro.belotserver.networking.client.BelotClient;
 import net.comboro.belotserver.team.Team;
 import net.comboro.belotserver.team.Teams;
+import networking.Token;
+import networking.client.BelotClient;
 
 import java.io.Serializable;
 import java.util.ArrayList;
@@ -106,12 +105,12 @@ public class Game {
     }
 
     private void manageBidding() {
-        int consecutivePasses = 0;
+        int consecutivePasses = 0, passesNeeded = 4;
         List<Integer> previousAnnots = new ArrayList<>();
         threepassloop:
-        while (consecutivePasses < 3) {
+        while (consecutivePasses <= passesNeeded) {
             for (Player player : teams.getPlayerList()) {
-                if (consecutivePasses > 2) break threepassloop;
+                if (consecutivePasses >= passesNeeded) break threepassloop;
 
                 // No more possible annotation
                 if (gameMode == GAME_MODE_ALL_TRUMP && multiplier == 4) {
@@ -125,7 +124,11 @@ public class Game {
                 }
 
                 String annot = NetworkUtils.sendAnnotaionRequest(player, previousAnnots);
+                // Send to others
+                NetworkUtils.sendAnnotation(player, gameMode, teams);
+
                 if (annot.startsWith(PREFIX_ANNOTATION)) {
+                    passesNeeded = 3;
                     int annot_int = Integer.parseInt(annot.substring(PREFIX_ANNOTATION.length()));
                     if (annot_int > gameMode) {
                         consecutivePasses = 0;
@@ -138,11 +141,12 @@ public class Game {
 
                         // Reset multiplier
                         multiplier = MULTIPLIER_SINGLE;
+
                         // Set team
                         teams.getTeam(player).setTrickHolder(true);
                     } else {
                         consecutivePasses++;
-//                        System.out.println("consecutivePasses:" + consecutivePasses);
+                        System.out.println("consecutivePasses:" + consecutivePasses);
                     }
                 } else if (annot.startsWith(PREFIX_MULTIPLIER)) {
                     if (gameMode != GAME_MODE_NOTHING) {
@@ -154,6 +158,12 @@ public class Game {
                         // Set team
                         teams.getTeam(player).setTrickHolder(true);
                     }
+                }
+
+                try {
+                    Thread.sleep(1500);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
                 }
             }
         }
@@ -179,14 +189,15 @@ public class Game {
                     break;
             }
         }
+
     }
 
-    private Player getTrickHolder(List<Card> playedCards) {
+    private Player getTrickHolder(List<Card> playedCards, List<Player> moveOrder) {
         List<Card> playedCardsCopy = new ArrayList<>(playedCards);
         CardUtils.sortAscending(playedCardsCopy);
         Card strongest = playedCardsCopy.get(playedCardsCopy.size() - 1);
         int index = playedCards.indexOf(strongest) % 4;
-        return teams.getPlayerAt(index);
+        return moveOrder.get(index);
     }
 
     private int getTrickPoints(List<Card> playedCards, int roundID) {
@@ -200,6 +211,7 @@ public class Game {
 
     private void manageTrick() {
         List<Card> playedCards = new ArrayList<>();
+        List<Player> moveOrder = new ArrayList<>();
 
         sendAll(TRICK_START);
 
@@ -208,7 +220,7 @@ public class Game {
         for (int i = 0; i < 4; i++) {
             // Get player and card
             playerToMove = teams.getPlayerAt((arrPos + i) % teams.getPlayerList().size());
-
+            moveOrder.add(playerToMove);
 
             System.out.println("Player to move: " + playerToMove.getUsername());
             System.out.println("Cards in hand: " + playerToMove.getCards().toString());
@@ -223,8 +235,14 @@ public class Game {
             // Send to all and and to array
             playedCards.add(lastPlayedCard);
             NetworkUtils.sendLastPlayedCard(teams.getPlayerList(), playerToMove, lastPlayedCard);
+
+            try {
+                Thread.sleep(500);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
         }
-        playerToMove = getTrickHolder(playedCards);
+        playerToMove = getTrickHolder(playedCards, moveOrder);
 
         System.out.println("Trick holder: " + playerToMove.getUsername());
 
@@ -267,7 +285,7 @@ public class Game {
 
     private void managePoints() {
         Team trickHolder = teams.getTrickHolder();
-        Team otherTeam = teams.getOtherTeam(teams.getOtherTeam(trickHolder));
+        Team otherTeam = teams.getOtherTeam(trickHolder);
 
         addValatPoints();
 
@@ -275,19 +293,15 @@ public class Game {
 
         int gamePoints = getGamePoints(gameMode);
 
-
-        int declarationPoints = addDeclarationPoints();
-
-        gamePoints += declarationPoints;
+        gamePoints += addDeclarationPoints();
         int overallPoints = (gamePoints + 2) / 10;
 
         if (otherTeam.getTrickPoints() > trickHolder.getTrickPoints()) {
             // Inside
-            otherTeam.addToOverallPoints((gamePoints + 2) / 10);
+            otherTeam.addToOverallPoints(overallPoints + hangingPoints);
 
-            otherTeam.addToOverallPoints(hangingPoints);
             hangingPoints = 0;
-        } else {
+        } else if (otherTeam.getTrickPoints() < trickHolder.getTrickPoints()) {
             int otherPoints = otherTeam.getTrickPoints(), otherFinalPoints = otherPoints / 10;
             if (gameMode < GAME_MODE_ALL_TRUMP) {
                 otherFinalPoints += otherPoints % 10 > 5 ? 1 : 0;
@@ -295,21 +309,16 @@ public class Game {
                 otherFinalPoints += otherPoints % 10 > 3 ? 1 : 0;
             }
 
-            int overallFinalPoints = overallPoints / 2;
-            overallFinalPoints += overallPoints % 2;
+            int holderFinalPoints = overallPoints - otherFinalPoints;
 
-            // Hanging points
-            if (otherFinalPoints == overallFinalPoints) {
-                otherTeam.addToOverallPoints(overallFinalPoints);
-                hangingPoints += overallFinalPoints;
-            } else { // Nothing is hanging
-                trickHolder.addToOverallPoints(overallFinalPoints - otherFinalPoints);
-                otherTeam.addToOverallPoints(otherPoints);
+            trickHolder.addToOverallPoints(holderFinalPoints);
+            otherTeam.addToOverallPoints(otherFinalPoints);
 
-                trickHolder.addToOverallPoints(hangingPoints);
-                hangingPoints = 0;
-            }
-
+            trickHolder.addToOverallPoints(hangingPoints);
+            hangingPoints = 0;
+        } else { //Hanging points
+            otherTeam.addToOverallPoints(overallPoints / 2);
+            hangingPoints = overallPoints / 2 + overallPoints % 2;
         }
     }
 
@@ -386,12 +395,22 @@ public class Game {
 
                 playerToMove = teams.getPlayerAt(0);
                 for (roundID = 1; roundID < 9; roundID++) {
-                    System.out.println("Trick ID: " + roundID);
+                    System.out.println();
+                    System.out.println("======Trick " + roundID + "======");
                     manageTrick();
                 }
 
+                System.out.println("- - - - All Tricks Done - - - -");
+
                 managePoints();
                 manageWinners();
+
+                System.out.println("Team 1 Points: " + teams.TEAM_1.getOverallPoints());
+                System.out.println("Team 2 Points: " + teams.TEAM_2.getOverallPoints());
+
+                if (winner) {
+                    System.out.println("We have a winner!");
+                }
             }
 
             //TODO: Dispay winner

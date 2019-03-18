@@ -4,6 +4,7 @@ import net.comboro.belotserver.Player;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.function.Consumer;
 
@@ -14,8 +15,8 @@ public class Teams {
 
     private List<Player> playerList = new ArrayList<>();
 
-    public void rotate(int amount) {
-        while (amount-- > 0) rotate();
+    public void rotate(int distance) {
+        Collections.rotate(playerList, distance);
     }
 
     public void orderPlayers() {
@@ -27,13 +28,6 @@ public class Teams {
         playerList.add(1, t2.get(0));
         playerList.add(2, t1.get(1));
         playerList.add(3, t2.get(1));
-    }
-
-    public void rotate() {
-        int lastIndex = playerList.size() - 1;
-        Player last = playerList.get(lastIndex);
-        playerList.set(lastIndex, playerList.get(0));
-        playerList.set(0, last);
     }
 
     public void addPlayer(Player player, int teamId) {

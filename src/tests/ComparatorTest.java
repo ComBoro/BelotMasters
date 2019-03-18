@@ -11,7 +11,7 @@ public class ComparatorTest {
 
     @Test
     public void printTrumps() {
-        List<Card> cards = Card.fromString("10S", "KS", "AS", "8S");
+        List<Card> cards = Card.fromString("10S", "KS", "AS", "JS");
         for (Card card : cards)
             if (card.COLOUR.equals(Colour.Spades))
                 card.setTrump();

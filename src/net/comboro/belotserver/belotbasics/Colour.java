@@ -17,7 +17,8 @@ public enum Colour {
                 Spades, Diamonds, Hearts, Clubs
         )) {
             if (str.equalsIgnoreCase(colour.string) ||
-                    str.equalsIgnoreCase(colour.toShortString()))
+                    str.equalsIgnoreCase(colour.toShortString()) ||
+                    str.equalsIgnoreCase(colour.toStringLetter()))
                 return colour;
         }
         throw new IllegalArgumentException("No such colour '" + str + "'.");
@@ -38,6 +39,10 @@ public enum Colour {
         } else {
             return String.valueOf('\u2664');
         }
+    }
+
+    public String toStringLetter() {
+        return toString().substring(0, 1);
     }
 
 }

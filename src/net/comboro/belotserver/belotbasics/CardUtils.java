@@ -2,7 +2,6 @@ package net.comboro.belotserver.belotbasics;
 
 import net.comboro.belotserver.Game;
 import net.comboro.belotserver.Player;
-import org.jetbrains.annotations.Contract;
 
 import java.util.*;
 
@@ -89,7 +88,6 @@ public class CardUtils {
         return false;
     }
 
-    @Contract("null, _, _, _ -> true")
     public static boolean validMove(List<Card> playedCards, int gameMode, List<Card> playerCards, Card toBePlayed) {
         if (playedCards == null || playedCards.isEmpty() || playerCards == null || playerCards.size() < 2) {
             return true;
@@ -169,20 +167,6 @@ public class CardUtils {
         List<Card> playerCards = player.getCards();
 
         return validMove(playedCards, gameMode, playerCards, toBePlayed);
-    }
-
-    public static int getPointsFromTricks(int trickPoints, int gameMode) {
-        if (gameMode == Game.GAME_MODE_NO_TRUMP) trickPoints *= 2;
-        int points = trickPoints / 10, remainder = trickPoints % 10;
-        if (gameMode < 4) { // All suits and No trump
-            if (remainder > 5) points++;
-        } else if (gameMode == Game.GAME_MODE_ALL_TRUMP) {
-            if (remainder > 3) {
-                points++;
-            }
-        }
-
-        return points;
     }
 
     public static ListIterator<Card> randomDeckListIterator() {

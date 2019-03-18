@@ -1,7 +1,7 @@
 package net.comboro.belotserver;
 
-import net.comboro.belotserver.networking.server.BelotServer;
-import net.comboro.belotserver.networking.server.ServerListener;
+import networking.server.BelotServer;
+import networking.server.ServerListener;
 
 import java.util.HashMap;
 

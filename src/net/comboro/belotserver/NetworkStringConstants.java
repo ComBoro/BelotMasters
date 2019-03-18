@@ -1,4 +1,4 @@
-package net.comboro.belotserver.networking;
+package net.comboro.belotserver;
 
 public interface NetworkStringConstants {
 

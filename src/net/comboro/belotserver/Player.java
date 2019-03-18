@@ -3,9 +3,9 @@ package net.comboro.belotserver;
 import net.comboro.belotserver.belotbasics.Card;
 import net.comboro.belotserver.networking.NetworkStringConstants;
 import net.comboro.belotserver.networking.SerializableMessage;
-import net.comboro.belotserver.networking.Token;
-import net.comboro.belotserver.networking.client.BelotClient;
-import net.comboro.belotserver.networking.client.ClientListener;
+import networking.Token;
+import networking.client.BelotClient;
+import networking.client.ClientListener;
 
 import java.io.Serializable;
 import java.util.ArrayList;
@@ -96,16 +96,21 @@ public class Player {
                 NetworkStringConstants.PREFIX_TIME_FOR_CARD + NetworkStringConstants.WAIT_TIME_PLAYER
                 , "no-reply");
 
-
         if (reply.equals("no-reply")) {
             throw new RuntimeException('\"' + username + "\" didn't play a card.");
         }
 
         Card card = Card.fromString(reply.substring(NetworkStringConstants.PREFIX_PLAY_CARD.length()));
 
-        cards.remove(card);
 
-        return card;
+        for (Card card_i : cards) {
+            if (card_i.COLOUR.equals(card.COLOUR) && card_i.TYPE.equals(card.TYPE)) {
+                cards.remove(card_i);
+                return card_i;
+            }
+        }
+
+        throw new IllegalArgumentException(getUsername() + " played  a card(" + card + ") that is not in his hand.");
     }
 
     public void addCard(Card card) {

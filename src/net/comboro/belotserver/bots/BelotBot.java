@@ -4,9 +4,9 @@ import net.comboro.belotserver.Player;
 import net.comboro.belotserver.belotbasics.Card;
 import net.comboro.belotserver.belotbasics.Colour;
 import net.comboro.belotserver.networking.SerializableMessage;
-import net.comboro.belotserver.networking.Token;
-import net.comboro.belotserver.networking.client.BelotClient;
-import net.comboro.belotserver.networking.client.ClientListener;
+import networking.Token;
+import networking.client.BelotClient;
+import networking.client.ClientListener;
 
 import java.io.IOException;
 import java.net.Socket;
@@ -17,7 +17,7 @@ import static net.comboro.belotserver.networking.NetworkStringConstants.*;
 
 public class BelotBot extends Player implements ClientListener {
 
-    public static final int TIME_PER_MOVE_MILLS = 2000;
+    public static final int TIME_PER_MOVE_MILLS = 200;
 
     private String prefix;
 
@@ -110,7 +110,7 @@ public class BelotBot extends Player implements ClientListener {
         }
 
         //Annotations
-        if (msg.startsWith(PREFIX_ANNOTATION)) {
+        if (msg.startsWith(PREFIX_ANNOTATION + "time:")) {
             int lastAnot = -1;
             if (msg.contains(",")) {
                 String split[] = msg.split(",");
