@@ -83,6 +83,8 @@ public class ServerUI extends javax.swing.JFrame {
             }
         }
 
+        for (String s : args) System.out.println(s);
+
         if (gui)
             java.awt.EventQueue.invokeLater(() -> new ServerUI().setVisible(true));
         else new ServerUI(port, bots);

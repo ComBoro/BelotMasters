@@ -245,10 +245,17 @@ public class Game {
         playerToMove = getTrickHolder(playedCards, moveOrder);
 
         System.out.println("Trick holder: " + playerToMove.getUsername());
+        sendAll("trickHolder:" + playerToMove.getUsername());
 
         int trickPoints = getTrickPoints(playedCards, roundID);
 
         teams.getTeam(playerToMove).addToTrickPoints(trickPoints);
+
+        try {
+            Thread.sleep(1000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
     }
 
     private void doubleIfNoTrumps() {
